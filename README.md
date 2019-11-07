@@ -246,3 +246,147 @@ irb(main):019:0> Post.second.user
 => #<User id: 1, username: "Odin", email: "odin@email.com", password: [FILTERED], created_at: "2019-11-07 16:31:12", updated_at: "2019-11-07 16:31:12">
 
 ```
+
+### Add in Commenting
+
+1. You’ve now got a User and a Post and they’ve been linked. Commenting will look quite similar to your Post model but will be related not just to the post who is its “parent” but also to the user who has authored it. Set up the migration and migrate the database for your Comment model.
+```sh
+rails generate model Comment body:text user:references post:references
+Running via Spring preloader in process 2348
+      invoke  active_record
+      create    db/migrate/20191107170446_create_comments.rb
+      create    app/models/comment.rb
+      invoke    test_unit
+      create      test/models/comment_test.rb
+      create      test/fixtures/comments.yml
+```
+
+# db/migration
+```sh
+class CreateComments < ActiveRecord::Migration[6.0]
+  def change
+    create_table :comments do |t|
+      t.text :body
+      t.references :user, index: true
+      t.references :post, index: true
+
+      t.timestamps
+    end
+  end
+end
+
+db:migrate
+== 20191107161121 CreatePosts: migrating ======================================
+-- create_table(:posts)
+   -> 0.0031s
+== 20191107161121 CreatePosts: migrated (0.0050s) =============================
+
+== 20191107162354 AddForeingKeyToPost: migrating ==============================
+-- add_reference(:posts, :user, {:index=>true})
+   -> 0.0073s
+== 20191107162354 AddForeingKeyToPost: migrated (0.0094s) =====================
+
+== 20191107170446 CreateComments: migrating ===================================
+-- create_table(:comments)
+   -> 0.0180s
+== 20191107170446 CreateComments: migrated (0.0196s) ==========================
+```
+
+2. As before, add validations into your model and test them out in the console (refresh it!). Make sure you’ve required the two foreign keys (for posts and users) to be submitted, otherwise you could potentially have an orphan comment. You should not be able to save an invalid Comment and be able to save a valid Comment.
+#app/models
+```sh
+class Comment < ActiveRecord::Base
+  belongs_to :user
+  belongs_to :post
+  ...
+end
+class User < ActiveRecord::Base
+  ...
+  has_many :posts
+  has_many :comments
+end
+class Post < ActiveRecord::Base
+  ...  
+  belongs_to :user 
+  has_many :comments
+end
+```
+
+3. Build a second user and create a new comment which represents this user commenting on the first user’s post.
+```sh
+>> l = User.new(username: "Loki", email: "loki@email.com", password: "buzzword")
+   (0.8ms)  SELECT sqlite_version(*)
+=> #<User id: nil, username: "Loki", email: "loki@email.com", password: [FILTERED], created_at: nil, updated_at: nil>
+>> l.valid?
+  User Exists? (0.4ms)  SELECT 1 AS one FROM "users" WHERE "users"."username" = ? LIMIT ?  [["username", "Loki"], ["LIMIT", 1]]
+=> true
+>> l.save
+   (0.1ms)  begin transaction
+  User Exists? (0.2ms)  SELECT 1 AS one FROM "users" WHERE "users"."username" = ? LIMIT ?  [["username", "Loki"], ["LIMIT", 1]]
+  User Create (8.5ms)  INSERT INTO "users" ("username", "email", "password", "created_at", "updated_at") VALUES (?, ?, ?, ?, ?)  [["username", "Loki"], ["email", "loki@email.com"], ["password", "buzzword"], ["created_at", "2019-11-07 17:12:36.246522"], ["updated_at", "2019-11-07 17:12:36.246522"]]
+   (2.9ms)  commit transaction
+=> true
+
+>> User.all
+  User Load (0.4ms)  SELECT "users".* FROM "users" LIMIT ?  [["LIMIT", 11]]
+=> #<ActiveRecord::Relation [#<User id: 1, username: "Odin", email: "odin@email.com", password: [FILTERED], created_at: "2019-11-07 16:05:45", updated_at: "2019-11-07 16:05:45">, #<User id: 2, username: "Loki", email: "loki@email.com", password: [FILTERED], created_at: "2019-11-07 17:12:36", updated_at: "2019-11-07 17:12:36">]>
+```
+
+
+4. As before, add the associations you need between users, posts, and comments. You’ll need to be able to do the following methods successfully from the console (assuming your second user has an ID of 2):
+
+```sh
+>> c = Comment.new("Nice post!")
+Traceback (most recent call last):
+        1: from (irb):8
+ArgumentError (When assigning attributes, you must pass a hash as an argument, String passed.)
+>> c = Comment.new(body: "Nice post!")
+=> #<Comment id: nil, body: "Nice post!", user_id: nil, post_id: nil, created_at: nil, updated_at: nil>
+>> c.save
+=> false
+>> c.errors.full_messages
+=> ["User must exist", "User can't be blank", "Post must exist", "Post can't be blank"]
+```
+
+a. > u2 = User.find(2)
+```sh
+>> u = User.find(2)
+  User Load (0.3ms)  SELECT "users".* FROM "users" WHERE "users"."id" = ? LIMIT ?  [["id", 2], ["LIMIT", 1]]
+=> #<User id: 2, username: "Loki", email: "loki@email.com", password: [FILTERED], created_at: "2019-11-07 17:12:36", updated_at: "2019-11-07 17:12:36">
+```
+
+b. > c1 = u2.comments.first should return that user’s comment. #comments returns an array with comments, which is why we need to use #first to actually retrieve the comment itself.
+```sh
+>> c = u.comments.first
+  Comment Load (0.2ms)  SELECT "comments".* FROM "comments" WHERE "comments"."user_id" = ? ORDER BY "comments"."id" ASC LIMIT ?  [["user_id", 2], ["LIMIT", 1]]
+=> #<Comment id: 1, body: "I enjoyed your post!", user_id: 2, post_id: 1, created_at: "2019-11-07 17:27:42", updated_at: "2019-11-07 17:27:42">
+```
+
+c .> c1.user should return that comment’s author User (u2).
+```sh
+>> c.user
+=> #<User id: 2, username: "Loki", email: "loki@email.com", password: [FILTERED], created_at: "2019-11-07 17:12:36", updated_at: "2019-11-07 17:12:36">
+```
+
+d .> p1 = Post.first
+```sh
+>> p1 = Post.first
+  Post Load (0.3ms)  SELECT "posts".* FROM "posts" ORDER BY "posts"."id" ASC LIMIT ?  [["LIMIT", 1]]
+=> #<Post id: 1, title: "My New Post", body: "Something here in my post", created_at: "2019-11-07 17:27:14", updated_at: "2019-11-07 17:27:14", user_id: 2>
+```
+
+e. > p1.comments.first should return the comment c1.
+```sh
+>> p1.comments.first
+  Comment Load (0.6ms)  SELECT "comments".* FROM "comments" WHERE "comments"."post_id" = ? ORDER BY "comments"."id" ASC LIMIT ?  [["post_id", 1], ["LIMIT", 1]]
+=> #<Comment id: 1, body: "I enjoyed your post!", user_id: 2, post_id: 1, created_at: "2019-11-07 17:27:42", updated_at: "2019-11-07 17:27:42">
+```
+
+f. > c1.post should return the post p1.
+```sh
+>> c.post
+  Post Load (0.2ms)  SELECT "posts".* FROM "posts" WHERE "posts"."id" = ? LIMIT ?  [["id", 1], ["LIMIT", 1]]
+=> #<Post id: 1, title: "My New Post", body: "Something here in my post", created_at: "2019-11-07 17:27:14", updated_at: "2019-11-07 17:27:14", user_id: 2>
+``` 
+
+If any of those don’t work, double check your associations. Sometimes the error messages can be helpful in prompting you for how to set up those associations.
