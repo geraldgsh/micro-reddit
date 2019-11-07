@@ -100,7 +100,7 @@ end
 ``` sh
 #app/models/user.rb
 class User < ApplicationRecord
-	validates :username, presence :true, 
+	validates :username, presence :true,
 	uniqueness: true, length: { maximum: 25 }
 end
 ```
@@ -141,4 +141,108 @@ Reloading...
   User Create (2.7ms)  INSERT INTO "users" ("username", "email", "password", "created_at", "updated_at") VALUES (?, ?, ?, ?, ?)  [["username", "Odin"], ["email", "odin@email.com"], ["password", "buzzword"], ["created_at", "2019-11-07 16:05:45.993186"], ["updated_at", "2019-11-07 16:05:45.993186"]]
    (3.4ms)  commit transaction
 => true
+```
+
+## Playing with Associations
+
+1. Create your Post model by referencing your data plan from the first step above, migrate the database, and add its validations.
+Migrate for the Post model and Post model validatios
+```sh
+class CreatePosts < ActiveRecord::Migration[6.0]
+  def change
+    create_table :posts do |t|
+      t.string :title
+      t.text :body
+
+      t.timestamps
+    end
+  end
+end
+
+class Post < ApplicationRecord
+  validates :title, presence: true, length: { maximum: 45 }
+  validates :body, presence: true, length: { maximum: 200 }
+end
+```
+
+
+2. Test your validations from the console, remembering to reload or relaunch it between changes.
+```sh
+irb(main):001:0> p = Post.new
+   (0.3ms)  SELECT sqlite_version(*)
+=> #<Post id: nil, title: nil, body: nil, created_at: nil, updated_at: nil>
+irb(main):002:0> p.valid?
+=> false
+irb(main):003:0> p.title ='First Post'
+=> "First Post"
+irb(main):004:0> p.body = 'This is a greate day! ohrray'
+=> "This is a greate day! ohrray"
+irb(main):005:0> p.save
+   (0.1ms)  begin transaction
+  Post Create (0.2ms)  INSERT INTO "posts" ("title", "body", "created_at", "updated_at") VALUES (?, ?, ?, ?)  [["title", "First Post"], ["body", "This is a greate day! ohrray"], ["created_at", "2019-11-07 16:16:51.183041"], ["updated_at", "2019-11-07 16:16:51.183041"]]
+   (130.8ms)  commit transaction
+=> true
+irb(main):006:0> p.valid?
+=> true
+```
+
+
+3. Now set up your associations between User and Post models. Did you remember to include the foreign key column (user_id) in your posts table? If not, you can just add a new migration ($ rails generate migration yourmigrationname) and use the #add_column method mentioned above.
+
+```sh
+class AddForeingKeyToPost < ActiveRecord::Migration[6.0]
+  def change
+    add_reference :posts, :user, index: true
+  end
+end
+
+class Post < ApplicationRecord
+  ...
+  belongs_to :user
+end
+
+class User < ApplicationRecord
+  ...
+	has_many :posts
+end
+```
+
+
+4. If you’ve properly set up your associations, you should be able to use a few more methods in the console, including finding a User’s Posts and finding the Post’s User. First test finding your lonely User’s Posts – > User.first.posts. It should be an empty array since you haven’t created posts, but it shouldn’t throw an error at you.
+```sh
+irb(main):009:0> User.first.posts
+  User Load (0.1ms)  SELECT "users".* FROM "users" ORDER BY "users"."id" ASC LIMIT ?  [["LIMIT", 1]]
+  Post Load (0.0ms)  SELECT "posts".* FROM "posts" WHERE "posts"."user_id" = ? LIMIT ?  [["user_id", 1], ["LIMIT", 11]]
+=> #<ActiveRecord::Associations::CollectionProxy []>
+
+```
+
+
+5. Build (but don’t yet save) a new post from the console, called p1, something like > p1 = Post.new(your_attributes_here). Don’t forget to include the ID of the user in your user_id field!.
+```sh
+irb(main):012:0> p1 = Post.new(title: "My New Post", body: "Something here in my post", user_id: 1)
+=> #<Post id: nil, title: "My New Post", body: "Something here in my post", created_at: nil, updated_at: nil, user_id: 1>
+```
+6. Now build another post using the association to the user – substitute #new with #build and run through the association instead – p2 = User.first.posts.build. Don’t fill in any fields yet. Examine the object that was created and you’ll see that the ID field already got filled out for you, cool! This is a neat trick you’ll learn about in the lesson on associations.
+```sh
+irb(main):013:0> p2 = User.first.posts.build
+  User Load (0.1ms)  SELECT "users".* FROM "users" ORDER BY "users"."id" ASC LIMIT ?  [["LIMIT", 1]]
+=> #<Post id: nil, title: nil, body: nil, created_at: nil, updated_at: nil, user_id: 1>
+```
+7 Save your original new post p1 so your user has officially written something. Test that you can use the other side of the association by trying > Post.first.user, which should return the original User object whose ID you pointed to when building the post. All has come full circle!
+```sh
+irb(main):014:0> p1.save
+   (0.0ms)  begin transaction
+  User Load (0.1ms)  SELECT "users".* FROM "users" WHERE "users"."id" = ? LIMIT ?  [["id", 1], ["LIMIT", 1]]
+  Post Create (0.1ms)  INSERT INTO "posts" ("title", "body", "created_at", "updated_at", "user_id") VALUES (?, ?, ?, ?, ?)  [["title", "My New Post"], ["body", "Something here in my post"], ["created_at", "2019-11-07 16:43:58.317303"], ["updated_at", "2019-11-07 16:43:58.317303"], ["user_id", 1]]
+   (173.3ms)  commit transaction
+=> true
+irb(main):016:0> Post.all
+  Post Load (0.1ms)  SELECT "posts".* FROM "posts" LIMIT ?  [["LIMIT", 11]]
+=> #<ActiveRecord::Relation [#<Post id: 1, title: "First Post", body: "This is a greate day! ohrray", created_at: "2019-11-07 16:16:51", updated_at: "2019-11-07 16:16:51", user_id: nil>, #<Post id: 2, title: "My New Post", body: "Something here in my post", created_at: "2019-11-07 16:43:58", updated_at: "2019-11-07 16:43:58", user_id: 1>]>
+irb(main):019:0> Post.second.user
+  Post Load (0.2ms)  SELECT "posts".* FROM "posts" ORDER BY "posts"."id" ASC LIMIT ? OFFSET ?  [["LIMIT", 1], ["OFFSET", 1]]
+  User Load (0.1ms)  SELECT "users".* FROM "users" WHERE "users"."id" = ? LIMIT ?  [["id", 1], ["LIMIT", 1]]
+=> #<User id: 1, username: "Odin", email: "odin@email.com", password: [FILTERED], created_at: "2019-11-07 16:31:12", updated_at: "2019-11-07 16:31:12">
+
 ```
