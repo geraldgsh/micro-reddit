@@ -423,7 +423,7 @@ https://www.theodinproject.com/courses/ruby-on-rails/lessons/building-with-activ
 
 https://github.com/geraldgsh/micro-reddit
 
-#### Authors
+### Authors
 
 * [@Christian](https://github.com/jcromerohdz)
 
