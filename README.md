@@ -1,32 +1,56 @@
-# README
+# Microverse Project Title - Building with Active Record [Collaborative Project]
+Ruby on Rails
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+### Introduction.
 
-Things you may want to cover:
+This project puts your knowledge of active record, models, and associations to the tests. You will build an application similar to Reddit (called Micro-Reddit) where a user can create a post and add comments to it.
 
-* Ruby version
+Full task description: https://www.theodinproject.com/courses/ruby-on-rails/lessons/building-with-active-record-ruby-on-rails.
 
-* System dependencies
+### Microverse Adjustments
 
-* Configuration
+You should complete the Warmup (Data Model Task) individually (but discuss it with your partner after finishing it). Afterwards, continue to do the Rails Tutorial individually as well. Next, you will complete the Micro-Reddit project with your partner. Once you are finished with this project, continue working together with your coding partner on the next project. You must still remain in a video call with your partner during your independent work.
 
-* Database creation
+###  Ruby version
 
-* Database initialization
+rbenv 2.6.5
 
-* How to run the test suite
 
-* Services (job queues, cache servers, search engines, etc.)
+###  System dependencies
 
-* Deployment instructions
+Rails 6.0.1
 
-* ...
+Yarn 1.19.1
 
-Development
-feature-branch
+Ubuntu 18.04 & below
 
-Get Started
+###  Database creation
+sqlite3
+
+###  Database initialization
+
+###  How to run the test suite
+1. Go to "rails console"
+2. Rails test
+
+###  Services (job queues, cache servers, search engines, etc.)
+
+###  Deployment instructions
+
+1. Open the terminal.
+
+2. Enter git clone https://github.com/geraldgsh/micro-reddit/
+
+3. Navigate to the cloned repository.
+
+4. Enter command "rails console" to start the backend 
+
+
+### ...
+
+
+### Instructions
+
 1. Just like in the warmup, plan out what data models you would need to allow users to be on the site (don’t worry about login/logout or securing the passwords right now), to submit links (“posts”), and to comment on links. Users do NOT need to be able to comment on comments… each comment refers to a Post.
 
 2. Generate a new rails app from the command line ($ rails new micro-reddit) and open it up. We’ll use the default SQLite3 database so you shouldn’t have to change anything on that front.
@@ -390,3 +414,17 @@ f. > c1.post should return the post p1.
 ``` 
 
 If any of those don’t work, double check your associations. Sometimes the error messages can be helpful in prompting you for how to set up those associations.
+
+### Source
+
+https://www.theodinproject.com/courses/ruby-on-rails/lessons/building-with-active-record-ruby-on-rails
+
+### Github Repo
+
+https://github.com/geraldgsh/micro-reddit
+
+#### Authors
+
+* [@Christian](https://github.com/jcromerohdz)
+
+* [@Gerald](https://github.com/geraldgsh)
